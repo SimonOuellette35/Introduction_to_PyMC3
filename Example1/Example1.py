@@ -36,7 +36,7 @@ with pm.Model() as model2:
 
     pm.Cauchy('returns', alpha=0.0, beta=beta, observed=returns)
 
-    mean_field = pm.fit(n=100000, method='advi', obj_optimizer=pm.adam(learning_rate=.001))
+    mean_field = pm.fit(n=150000, method='advi', obj_optimizer=pm.adam(learning_rate=.001))
 
     trace2 = mean_field.sample(draws=10000)
 
@@ -58,41 +58,5 @@ print "Estimating LOO..."
 model1.name = 'Gaussian model'
 model2.name = 'Cauchy model'
 df_LOO = pm.compare({model1:trace, model2:trace2}, ic='LOO')
-
-print "LOO comparison table: ", df_LOO
-
-# 4. let's try a student t-distribution
-with pm.Model() as model3:
-
-    nu = pm.HalfNormal('nu', sd=10.)
-    sigma = pm.HalfNormal('sigma', sd=.1)
-
-    pm.StudentT('returns', nu=nu, mu=0.0, sd=sigma, observed=returns)
-
-    mean_field = pm.fit(n=100000, method='advi', obj_optimizer=pm.adam(learning_rate=.001))
-
-    trace3 = mean_field.sample(draws=10000)
-
-print "Estimated nu: ", np.mean(trace3['nu'])
-print "Estimated sigma: ", np.mean(trace3['sigma'])
-
-preds3 = pm.sample_ppc(trace3, samples=1000, model=model2)
-y3 = np.reshape(np.mean(preds3['returns'], axis=0), [-1])
-
-fig, (ax1, ax2) = plt.subplots(1, 2)
-
-ax1.hist(y3)
-ax1.set_title('Student t-distribution returns')
-ax2.hist(returns)
-ax2.set_title('Real returns')
-
-plt.show()
-
-print "Estimating LOO..."
-
-# Let's compare the fit of both models
-model3.name = 'Student T model'
-
-df_LOO = pm.compare({model2:trace2, model3:trace3}, ic='LOO')
 
 print "LOO comparison table: ", df_LOO
